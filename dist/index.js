@@ -17,6 +17,10 @@ __nccwpck_require__.r(__webpack_exports__);
 
 
 
+const leaveComment = __nccwpck_require__(1667);
+
+const commentTpl = `This Pull Request may conflict if the Pull Requests below are merged first.\n\n`;
+
 async function run() {
   const token = _actions_core__WEBPACK_IMPORTED_MODULE_1__.getInput("token", { required: true });
   // skip if the check triggered by a non pull request
@@ -58,6 +62,7 @@ async function run() {
   let found = false;
   _actions_core__WEBPACK_IMPORTED_MODULE_1__.startGroup(`Searching for the conflict markers in changed files`);
   try {
+    let body = '';
     const promises = files.map((filename) => {
       return fs_promises__WEBPACK_IMPORTED_MODULE_0__.readFile(filename).then((buf) => {
         _actions_core__WEBPACK_IMPORTED_MODULE_1__.info(`Analyzing the "${filename}" file`);
@@ -87,13 +92,19 @@ async function run() {
             }
             return true;
           });
-        if (idx1 !== -1 && idx2 !== -1 && idx3 !== -1) {
-          _actions_core__WEBPACK_IMPORTED_MODULE_1__.error("Merge conflict found", {
-            file: filename,
-            startLine: idx1 + 1,
-          });
+        if (idx1 !== -1 && idx2 !== -1 && idx3 !== -1) { 
+          body = commentTpl +
+            `#${idx1 + 1}\nconflictable files: ${filename}`
+          .join('\n');
         }
       });
+    });
+
+    // leave comment on current PR
+    await leaveComment({
+      octokit,
+      pull_number: pr,
+      body,
     });
 
     await Promise.all(promises);
@@ -113,6 +124,31 @@ try {
 
 __webpack_async_result__();
 } catch(e) { __webpack_async_result__(e); } }, 1);
+
+/***/ }),
+
+/***/ 1667:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+const { context } = __nccwpck_require__(5438);
+
+const leaveComment = async ({
+    octokit,
+    owner = context.repo.owner,
+    repo = context.repo.repo,
+    pull_number,
+    body,
+  }) => {
+  await octokit.issues.createComment({
+    owner,
+    repo,
+    issue_number: pull_number,
+    body,
+  });
+}
+
+module.exports = leaveComment;
+
 
 /***/ }),
 

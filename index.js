@@ -47,6 +47,7 @@ async function run() {
   let found = false;
   core.startGroup(`Searching for the conflict markers in changed files`);
   try {
+    let body = '';
     const promises = files.map((filename) => {
       return fs.readFile(filename).then((buf) => {
         core.info(`Analyzing the "${filename}" file`);
@@ -77,18 +78,18 @@ async function run() {
             return true;
           });
         if (idx1 !== -1 && idx2 !== -1 && idx3 !== -1) { 
-          const body = commentTpl +
+          body = commentTpl +
             `#${idx1 + 1}\nconflictable files: ${filename}`
-          ).join('\n');
-          
-          // leave comment on current PR
-          await leaveComment({
-            octokit,
-            pull_number: pr,
-            body,
-          });
+          .join('\n');
         }
       });
+    });
+
+    // leave comment on current PR
+    await leaveComment({
+      octokit,
+      pull_number: pr,
+      body,
     });
 
     await Promise.all(promises);
