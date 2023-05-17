@@ -63,7 +63,7 @@ async function run() {
   let found = false;
   _actions_core__WEBPACK_IMPORTED_MODULE_1__.startGroup(`Searching for the conflict markers in changed files`);
   try {
-    let body = '';
+    let body = commentTpl;
     const promises = files.map((filename) => {
       return fs_promises__WEBPACK_IMPORTED_MODULE_0__.readFile(filename).then((buf) => {
         _actions_core__WEBPACK_IMPORTED_MODULE_1__.info(`Analyzing the "${filename}" file`);
@@ -94,9 +94,7 @@ async function run() {
             return true;
           });
         if (idx1 !== -1 && idx2 !== -1 && idx3 !== -1) { 
-          body = commentTpl +
-            `#${idx1 + 1}\nconflictable files: ${filename}`
-          .join('\n');
+          body += `#${idx1 + 1}\nconflictable file: ${filename}`;
         }
       });
     });

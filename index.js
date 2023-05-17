@@ -47,7 +47,7 @@ async function run() {
   let found = false;
   core.startGroup(`Searching for the conflict markers in changed files`);
   try {
-    let body = '';
+    let body = commentTpl;
     const promises = files.map((filename) => {
       return fs.readFile(filename).then((buf) => {
         core.info(`Analyzing the "${filename}" file`);
@@ -78,9 +78,7 @@ async function run() {
             return true;
           });
         if (idx1 !== -1 && idx2 !== -1 && idx3 !== -1) { 
-          body = commentTpl +
-            `#${idx1 + 1}\nconflictable files: ${filename}`
-          .join('\n');
+          body += `#${idx1 + 1}\nconflictable file: ${filename}`;
         }
       });
     });
