@@ -95,28 +95,25 @@ async function run() {
           });
 
         if (idx1 !== -1 && idx2 !== -1 && idx3 !== -1) {
-          found = true;
-
           _actions_core__WEBPACK_IMPORTED_MODULE_1__.info(`Conflict in "${filename}" file`);
           body += `#${idx1 + 1}\nConflictable file: ${filename}`;
         }
       });
     });
 
-    if(found) {
-      // leave comment on current PR
-      await (0,_lib_comment__WEBPACK_IMPORTED_MODULE_3__/* ["default"] */ .Z)({
-        octokit,
-        pull_number: pr,
-        body,
-      });
-    }
-
     await Promise.all(promises);
   } finally {
     _actions_core__WEBPACK_IMPORTED_MODULE_1__.endGroup();
   }
+
   if (found) {
+    // leave comment on current PR
+    await (0,_lib_comment__WEBPACK_IMPORTED_MODULE_3__/* ["default"] */ .Z)({
+      octokit,
+      pull_number: pr,
+      body,
+    });
+
     throw Error("Found merge conflict markers");
   }
 }

@@ -79,28 +79,25 @@ async function run() {
           });
 
         if (idx1 !== -1 && idx2 !== -1 && idx3 !== -1) {
-          found = true;
-
           core.info(`Conflict in "${filename}" file`);
           body += `#${idx1 + 1}\nConflictable file: ${filename}`;
         }
       });
     });
 
-    if(found) {
-      // leave comment on current PR
-      await leaveComment({
-        octokit,
-        pull_number: pr,
-        body,
-      });
-    }
-
     await Promise.all(promises);
   } finally {
     core.endGroup();
   }
+
   if (found) {
+    // leave comment on current PR
+    await leaveComment({
+      octokit,
+      pull_number: pr,
+      body,
+    });
+
     throw Error("Found merge conflict markers");
   }
 }
