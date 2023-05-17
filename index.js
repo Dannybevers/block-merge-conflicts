@@ -45,9 +45,9 @@ async function run() {
     core.endGroup();
   }
   let found = false;
+  let body = commentTpl;
   core.startGroup(`Searching for the conflict markers in changed files`);
   try {
-    let body = commentTpl;
     const promises = files.map((filename) => {
       return fs.readFile(filename).then((buf) => {
         core.info(`Analyzing the "${filename}" file`);
@@ -92,6 +92,14 @@ async function run() {
         pull_number: pr,
         body,
       });
+    }
+
+    if (found) {
+      core.info(body);
+    }
+    else {
+      core.info('else');
+      core.info(body);
     }
 
     await Promise.all(promises);

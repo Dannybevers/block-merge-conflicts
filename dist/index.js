@@ -61,9 +61,9 @@ async function run() {
     _actions_core__WEBPACK_IMPORTED_MODULE_1__.endGroup();
   }
   let found = false;
+  let body = commentTpl;
   _actions_core__WEBPACK_IMPORTED_MODULE_1__.startGroup(`Searching for the conflict markers in changed files`);
   try {
-    let body = commentTpl;
     const promises = files.map((filename) => {
       return fs_promises__WEBPACK_IMPORTED_MODULE_0__.readFile(filename).then((buf) => {
         _actions_core__WEBPACK_IMPORTED_MODULE_1__.info(`Analyzing the "${filename}" file`);
@@ -108,6 +108,14 @@ async function run() {
         pull_number: pr,
         body,
       });
+    }
+
+    if (found) {
+      _actions_core__WEBPACK_IMPORTED_MODULE_1__.info(body);
+    }
+    else {
+      _actions_core__WEBPACK_IMPORTED_MODULE_1__.info('else');
+      _actions_core__WEBPACK_IMPORTED_MODULE_1__.info(body);
     }
 
     await Promise.all(promises);
