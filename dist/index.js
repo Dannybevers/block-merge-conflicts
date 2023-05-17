@@ -14,7 +14,6 @@ __nccwpck_require__.r(__webpack_exports__);
 /* harmony import */ var _actions_github__WEBPACK_IMPORTED_MODULE_2__ = __nccwpck_require__(5438);
 /* harmony import */ var _actions_github__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__nccwpck_require__.n(_actions_github__WEBPACK_IMPORTED_MODULE_2__);
 /* harmony import */ var _lib_comment__WEBPACK_IMPORTED_MODULE_3__ = __nccwpck_require__(1667);
-/* harmony import */ var _lib_comment__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__nccwpck_require__.n(_lib_comment__WEBPACK_IMPORTED_MODULE_3__);
 
 
 
@@ -103,7 +102,7 @@ async function run() {
     });
 
     // leave comment on current PR
-    await _lib_comment__WEBPACK_IMPORTED_MODULE_3___default()({
+    await (0,_lib_comment__WEBPACK_IMPORTED_MODULE_3__/* ["default"] */ .Z)({
       octokit,
       pull_number: pr,
       body,
@@ -130,14 +129,18 @@ __webpack_async_result__();
 /***/ }),
 
 /***/ 1667:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+/***/ ((module, __unused_webpack___webpack_exports__, __nccwpck_require__) => {
 
-const { context } = __nccwpck_require__(5438);
+"use strict";
+/* harmony import */ var _actions_github__WEBPACK_IMPORTED_MODULE_0__ = __nccwpck_require__(5438);
+/* harmony import */ var _actions_github__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__nccwpck_require__.n(_actions_github__WEBPACK_IMPORTED_MODULE_0__);
+/* module decorator */ module = __nccwpck_require__.hmd(module);
+
 
 const leaveComment = async ({
     octokit,
-    owner = context.repo.owner,
-    repo = context.repo.repo,
+    owner = _actions_github__WEBPACK_IMPORTED_MODULE_0__.context.repo.owner,
+    repo = _actions_github__WEBPACK_IMPORTED_MODULE_0__.context.repo.repo,
     pull_number,
     body,
   }) => {
@@ -9923,8 +9926,8 @@ module.exports = JSON.parse('[[[0,44],"disallowed_STD3_valid"],[[45,46],"valid"]
 /******/ 		}
 /******/ 		// Create a new module (and put it into the cache)
 /******/ 		var module = __webpack_module_cache__[moduleId] = {
-/******/ 			// no module.id needed
-/******/ 			// no module.loaded needed
+/******/ 			id: moduleId,
+/******/ 			loaded: false,
 /******/ 			exports: {}
 /******/ 		};
 /******/ 	
@@ -9936,6 +9939,9 @@ module.exports = JSON.parse('[[[0,44],"disallowed_STD3_valid"],[[45,46],"valid"]
 /******/ 		} finally {
 /******/ 			if(threw) delete __webpack_module_cache__[moduleId];
 /******/ 		}
+/******/ 	
+/******/ 		// Flag the module as loaded
+/******/ 		module.loaded = true;
 /******/ 	
 /******/ 		// Return the exports of the module
 /******/ 		return module.exports;
@@ -10032,6 +10038,21 @@ module.exports = JSON.parse('[[[0,44],"disallowed_STD3_valid"],[[45,46],"valid"]
 /******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
 /******/ 				}
 /******/ 			}
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/harmony module decorator */
+/******/ 	(() => {
+/******/ 		__nccwpck_require__.hmd = (module) => {
+/******/ 			module = Object.create(module);
+/******/ 			if (!module.children) module.children = [];
+/******/ 			Object.defineProperty(module, 'exports', {
+/******/ 				enumerable: true,
+/******/ 				set: () => {
+/******/ 					throw new Error('ES Modules may not assign module.exports or exports.*, Use ESM export syntax, instead: ' + module.id);
+/******/ 				}
+/******/ 			});
+/******/ 			return module;
 /******/ 		};
 /******/ 	})();
 /******/ 	
