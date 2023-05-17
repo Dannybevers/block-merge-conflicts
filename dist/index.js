@@ -13,11 +13,13 @@ __nccwpck_require__.r(__webpack_exports__);
 /* harmony import */ var _actions_core__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__nccwpck_require__.n(_actions_core__WEBPACK_IMPORTED_MODULE_1__);
 /* harmony import */ var _actions_github__WEBPACK_IMPORTED_MODULE_2__ = __nccwpck_require__(5438);
 /* harmony import */ var _actions_github__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__nccwpck_require__.n(_actions_github__WEBPACK_IMPORTED_MODULE_2__);
+/* harmony import */ var _lib_comment__WEBPACK_IMPORTED_MODULE_3__ = __nccwpck_require__(1667);
+/* harmony import */ var _lib_comment__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__nccwpck_require__.n(_lib_comment__WEBPACK_IMPORTED_MODULE_3__);
 
 
 
 
-const leaveComment = __nccwpck_require__(1667);
+
 
 const commentTpl = `This Pull Request may conflict if the Pull Requests below are merged first.\n\n`;
 
@@ -101,7 +103,7 @@ async function run() {
     });
 
     // leave comment on current PR
-    await leaveComment({
+    await _lib_comment__WEBPACK_IMPORTED_MODULE_3___default()({
       octokit,
       pull_number: pr,
       body,

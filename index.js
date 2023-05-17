@@ -2,7 +2,7 @@ import * as fs from "fs/promises";
 import * as core from "@actions/core";
 import * as github from "@actions/github";
 
-const leaveComment = require('./lib/comment');
+import leaveComment from './lib/comment';
 
 const commentTpl = `This Pull Request may conflict if the Pull Requests below are merged first.\n\n`;
 
