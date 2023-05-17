@@ -146,7 +146,7 @@ const leaveComment = async ({
     pull_number,
     body,
   }) => {
-  await octokit.issues.createComment({
+  await octokit.rest.issues.createComment({
     owner,
     repo,
     issue_number: pull_number,
