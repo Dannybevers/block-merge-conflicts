@@ -76,25 +76,19 @@ async function run() {
             }
             return true;
           });
-        if (idx1 !== -1 && idx2 !== -1 && idx3 !== -1) {
+        if (idx1 !== -1 && idx2 !== -1 && idx3 !== -1) { 
+          const body = commentTpl +
+            `#${idx1 + 1}\nconflictable files: ${filename}`
+          ).join('\n');
           
-          core.error("Merge conflict found", {
-            file: filename,
-            startLine: idx1 + 1,
+          // leave comment on current PR
+          await leaveComment({
+            octokit,
+            pull_number: pr,
+            body,
           });
-          
-        const body = commentTpl +
-          `#${idx1 + 1}\nconflictable files: ${filename}`
-        ).join('\n');
         }
       });
-    });
-    
-    // leave comment on current PR
-    await leaveComment({
-      octokit,
-      pull_number: pr,
-      body,
     });
 
     await Promise.all(promises);
