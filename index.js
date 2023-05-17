@@ -2,6 +2,10 @@ import * as fs from "fs/promises";
 import * as core from "@actions/core";
 import * as github from "@actions/github";
 
+const leaveComment = require('./lib/comment');
+
+const commentTpl = `This Pull Request may conflict if the Pull Requests below are merged first.\n\n`;
+
 async function run() {
   const token = core.getInput("token", { required: true });
   // skip if the check triggered by a non pull request
@@ -73,12 +77,24 @@ async function run() {
             return true;
           });
         if (idx1 !== -1 && idx2 !== -1 && idx3 !== -1) {
+          
           core.error("Merge conflict found", {
             file: filename,
             startLine: idx1 + 1,
           });
+          
+        const body = commentTpl +
+          `#${idx1 + 1}\nconflictable files: ${filename}`
+        ).join('\n');
         }
       });
+    });
+    
+    // leave comment on current PR
+    await leaveComment({
+      octokit,
+      pull_number: pr,
+      body,
     });
 
     await Promise.all(promises);
