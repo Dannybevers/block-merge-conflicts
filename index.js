@@ -79,6 +79,8 @@ async function run() {
           });
 
         if (idx1 !== -1 && idx2 !== -1 && idx3 !== -1) {
+          found = true;
+
           core.info(`Conflict in "${filename}" file`);
           body += `#${idx1 + 1}\nConflictable file: ${filename}`;
         }
@@ -92,14 +94,6 @@ async function run() {
         pull_number: pr,
         body,
       });
-    }
-
-    if (found) {
-      core.info(body);
-    }
-    else {
-      core.info('else');
-      core.info(body);
     }
 
     await Promise.all(promises);

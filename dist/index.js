@@ -95,6 +95,8 @@ async function run() {
           });
 
         if (idx1 !== -1 && idx2 !== -1 && idx3 !== -1) {
+          found = true;
+
           _actions_core__WEBPACK_IMPORTED_MODULE_1__.info(`Conflict in "${filename}" file`);
           body += `#${idx1 + 1}\nConflictable file: ${filename}`;
         }
@@ -108,14 +110,6 @@ async function run() {
         pull_number: pr,
         body,
       });
-    }
-
-    if (found) {
-      _actions_core__WEBPACK_IMPORTED_MODULE_1__.info(body);
-    }
-    else {
-      _actions_core__WEBPACK_IMPORTED_MODULE_1__.info('else');
-      _actions_core__WEBPACK_IMPORTED_MODULE_1__.info(body);
     }
 
     await Promise.all(promises);
