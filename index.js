@@ -151,3 +151,9 @@ async function run() {
     throw Error("Found leftover debug calls. Please remove them.");
   }
 }
+
+try {
+  await run();
+} catch (error) {
+  core.setFailed(error.message);
+}
