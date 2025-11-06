@@ -6,6 +6,17 @@ import leaveComment from "./lib/comment";
 
 const commentTpl = `This Pull Request may conflict if the Pull Requests below are merged first.\n\n`;
 
+const MAX_COMMENT_LENGTH = 65536;
+const TRUNCATION_MESSAGE = "\n\n... (limit of 65.536 chars reached)";
+const MAX_BODY_LENGTH = MAX_COMMENT_LENGTH - TRUNCATION_MESSAGE.length;
+
+function truncateBody(body) {
+  if (body.length > MAX_BODY_LENGTH) {
+    return body.substring(0, MAX_BODY_LENGTH) + TRUNCATION_MESSAGE;
+  }
+  return body;
+}
+
 async function run() {
   const token = core.getInput("token", { required: true });
   if (!github.context.payload.pull_request) {
@@ -129,7 +140,7 @@ async function run() {
     await leaveComment({
       octokit,
       pull_number: pr,
-      body: conflictBody,
+      body: truncateBody(conflictBody),
     });
   }
 
@@ -137,7 +148,7 @@ async function run() {
     await leaveComment({
       octokit,
       pull_number: pr,
-      body: debugBody,
+      body: truncateBody(debugBody),
     });
   }
 

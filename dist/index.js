@@ -22,6 +22,17 @@ __nccwpck_require__.r(__webpack_exports__);
 
 const commentTpl = `This Pull Request may conflict if the Pull Requests below are merged first.\n\n`;
 
+const MAX_COMMENT_LENGTH = 65536;
+const TRUNCATION_MESSAGE = "\n\n... (limit of 65.536 chars reached)";
+const MAX_BODY_LENGTH = MAX_COMMENT_LENGTH - TRUNCATION_MESSAGE.length;
+
+function truncateBody(body) {
+  if (body.length > MAX_BODY_LENGTH) {
+    return body.substring(0, MAX_BODY_LENGTH) + TRUNCATION_MESSAGE;
+  }
+  return body;
+}
+
 async function run() {
   const token = _actions_core__WEBPACK_IMPORTED_MODULE_1__.getInput("token", { required: true });
   if (!_actions_github__WEBPACK_IMPORTED_MODULE_2__.context.payload.pull_request) {
@@ -145,7 +156,7 @@ async function run() {
     await (0,_lib_comment__WEBPACK_IMPORTED_MODULE_3__/* ["default"] */ .A)({
       octokit,
       pull_number: pr,
-      body: conflictBody,
+      body: truncateBody(conflictBody),
     });
   }
 
@@ -153,7 +164,7 @@ async function run() {
     await (0,_lib_comment__WEBPACK_IMPORTED_MODULE_3__/* ["default"] */ .A)({
       octokit,
       pull_number: pr,
-      body: debugBody,
+      body: truncateBody(debugBody),
     });
   }
 
