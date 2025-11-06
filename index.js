@@ -51,7 +51,7 @@ async function run() {
 
   core.startGroup(`Searching for conflict markers and debug calls in changed files`);
   try {
-    const debugRegex = /(showe|show|@dump|dumps)\s*\(/i;
+    const debugRegex = /@?(showe|show|dump|dumps)\s*\(/i;
 
     const promises = files.map(async (filename) => {
       try {
