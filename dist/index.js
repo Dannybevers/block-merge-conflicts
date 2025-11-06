@@ -27,162 +27,165 @@ const TRUNCATION_MESSAGE = "\n\n... (limit of 65.536 chars reached)";
 const MAX_BODY_LENGTH = MAX_COMMENT_LENGTH - TRUNCATION_MESSAGE.length;
 
 function truncateBody(body) {
-  if (body.length > MAX_BODY_LENGTH) {
-    return body.substring(0, MAX_BODY_LENGTH) + TRUNCATION_MESSAGE;
-  }
-  return body;
+    if (body.length > MAX_BODY_LENGTH) {
+        return body.substring(0, MAX_BODY_LENGTH) + TRUNCATION_MESSAGE;
+    }
+    return body;
 }
 
 async function run() {
-  const token = _actions_core__WEBPACK_IMPORTED_MODULE_1__.getInput("token", { required: true });
-  if (!_actions_github__WEBPACK_IMPORTED_MODULE_2__.context.payload.pull_request) {
-    return;
-  }
-  const pr = _actions_github__WEBPACK_IMPORTED_MODULE_2__.context.payload.pull_request.number;
-  const octokit = _actions_github__WEBPACK_IMPORTED_MODULE_2__.getOctokit(token);
-  const files = [];
-
-  _actions_core__WEBPACK_IMPORTED_MODULE_1__.startGroup(
-    `Fetching list of changed files for PR#${pr} from Github API`,
-  );
-  try {
-    for await (const response of octokit.paginate.iterator(
-      octokit.rest.pulls.listFiles.endpoint.merge({
-        owner: _actions_github__WEBPACK_IMPORTED_MODULE_2__.context.repo.owner,
-        repo: _actions_github__WEBPACK_IMPORTED_MODULE_2__.context.repo.repo,
-        pull_number: pr,
-      }),
-    )) {
-      if (response.status !== 200) {
-        throw new Error(
-          `Fetching list of changed files from GitHub API failed with error code ${response.status}`,
-        );
-      }
-      _actions_core__WEBPACK_IMPORTED_MODULE_1__.info(`Received ${response.data.length} items`);
-      for (const row of response.data) {
-        _actions_core__WEBPACK_IMPORTED_MODULE_1__.info(`[${row.status}] ${row.filename}`);
-        if (row.status === "removed") {
-          continue;
-        }
-        files.push(row.filename);
-      }
+    const token = _actions_core__WEBPACK_IMPORTED_MODULE_1__.getInput("token", {required: true});
+    if (!_actions_github__WEBPACK_IMPORTED_MODULE_2__.context.payload.pull_request) {
+        return;
     }
-  } finally {
-    _actions_core__WEBPACK_IMPORTED_MODULE_1__.endGroup();
-  }
+    const pr = _actions_github__WEBPACK_IMPORTED_MODULE_2__.context.payload.pull_request.number;
+    const octokit = _actions_github__WEBPACK_IMPORTED_MODULE_2__.getOctokit(token);
+    const files = [];
 
-  let conflictFound = false;
-  let conflictBody = commentTpl;
-  let debugFound = false;
-  let debugBody =
-    "Heads up! Found leftover debugging functions in this Pull Request:\n\n";
-
-  _actions_core__WEBPACK_IMPORTED_MODULE_1__.startGroup(
-    `Searching for conflict markers and debug calls in changed files`,
-  );
-  try {
-    const debugRegex = /@?(showe|show|dump|dumps)\s*\(/i;
-
-    const promises = files.map(async (filename) => {
-      try {
-        const buf = await fs_promises__WEBPACK_IMPORTED_MODULE_0__.readFile(filename);
-        _actions_core__WEBPACK_IMPORTED_MODULE_1__.info(`Analyzing the "${filename}" file`);
-        const fileContent = buf.toString();
-        const lines = fileContent.split(/\r?\n/);
-
-        let idx1 = -1;
-        let idx2 = -1;
-        let conflictLines = [];
-
-        lines.forEach((line, i) => {
-          if (idx1 === -1) {
-            if (line.startsWith("<<<<<<<")) idx1 = i;
-          } else if (idx2 === -1) {
-            if (line.startsWith("=======")) idx2 = i;
-          } else {
-            if (line.startsWith(">>>>>>>")) {
-              conflictLines.push(idx1 + 1);
-
-              idx1 = -1;
-              idx2 = -1;
-            }
-          }
-        });
-
-        let debugLinesFound = [];
-        lines.forEach((line, i) => {
-          if (debugRegex.test(line)) {
-            debugLinesFound.push({ line: i + 1, content: line.trim() });
-          }
-        });
-
-        return { filename, conflictLines, debugLinesFound };
-      } catch (err) {
-        _actions_core__WEBPACK_IMPORTED_MODULE_1__.warning(
-          `Could not read or process file ${filename}: ${err.message}`,
-        );
-        return null;
-      }
-    });
-
-    const results = await Promise.all(promises);
-
-    for (const result of results) {
-      if (!result) continue;
-
-      if (result.conflictLines.length > 0) {
-        conflictFound = true;
-        conflictBody += `**File:** \`${result.filename}\`\n`;
-        conflictBody += result.conflictLines
-          .map((lineNum) => `  - Conflict marker starting at line #${lineNum}`)
-          .join("\n");
-        conflictBody += "\n\n";
-      }
-
-      if (result.debugLinesFound.length > 0) {
-        debugFound = true;
-        debugBody += `**File:** \`${result.filename}\`\n`;
-        debugBody += result.debugLinesFound
-          .map((debug) => `  - Line #${debug.line}: \`${debug.content}\``)
-          .join("\n");
-        debugBody += "\n\n";
-      }
-    }
-  } finally {
-    _actions_core__WEBPACK_IMPORTED_MODULE_1__.endGroup();
-  }
-
-  if (conflictFound) {
-    await (0,_lib_comment__WEBPACK_IMPORTED_MODULE_3__/* ["default"] */ .A)({
-      octokit,
-      pull_number: pr,
-      body: truncateBody(conflictBody),
-    });
-  }
-
-  if (debugFound) {
-    await (0,_lib_comment__WEBPACK_IMPORTED_MODULE_3__/* ["default"] */ .A)({
-      octokit,
-      pull_number: pr,
-      body: truncateBody(debugBody),
-    });
-  }
-
-  if (conflictFound && debugFound) {
-    throw Error(
-      "Found merge conflict markers AND leftover debug calls. Please fix both.",
+    _actions_core__WEBPACK_IMPORTED_MODULE_1__.startGroup(
+        `Fetching list of changed files for PR#${pr} from Github API`,
     );
-  } else if (conflictFound) {
-    throw Error("Found merge conflict markers. Please resolve them.");
-  } else if (debugFound) {
-    throw Error("Found leftover debug calls. Please remove them.");
-  }
+    try {
+        for await (const response of octokit.paginate.iterator(
+            octokit.rest.pulls.listFiles.endpoint.merge({
+                owner: _actions_github__WEBPACK_IMPORTED_MODULE_2__.context.repo.owner,
+                repo: _actions_github__WEBPACK_IMPORTED_MODULE_2__.context.repo.repo,
+                pull_number: pr,
+            }),
+        )) {
+            if (response.status !== 200) {
+                throw new Error(
+                    `Fetching list of changed files from GitHub API failed with error code ${response.status}`,
+                );
+            }
+            _actions_core__WEBPACK_IMPORTED_MODULE_1__.info(`Received ${response.data.length} items`);
+            for (const row of response.data) {
+                _actions_core__WEBPACK_IMPORTED_MODULE_1__.info(`[${row.status}] ${row.filename}`);
+                if (row.status === "removed") {
+                    continue;
+                }
+                files.push(row.filename);
+            }
+        }
+    } finally {
+        _actions_core__WEBPACK_IMPORTED_MODULE_1__.endGroup();
+    }
+
+    let conflictFound = false;
+    let conflictBody = commentTpl;
+    let debugFound = false;
+    let debugBody =
+        "Heads up! Found leftover debugging functions in this Pull Request:\n\n";
+
+    _actions_core__WEBPACK_IMPORTED_MODULE_1__.startGroup(
+        `Searching for conflict markers and debug calls in changed files`,
+    );
+    try {
+        const debugRegex = /@?(showe|show|dump|dumps)\s*\(/i;
+
+        const promises = files.map(async (filename) => {
+            try {
+                const buf = await fs_promises__WEBPACK_IMPORTED_MODULE_0__.readFile(filename);
+                _actions_core__WEBPACK_IMPORTED_MODULE_1__.info(`Analyzing the "${filename}" file`);
+                const fileContent = buf.toString();
+                const lines = fileContent.split(/\r?\n/);
+
+                let idx1 = -1;
+                let idx2 = -1;
+                let conflictLines = [];
+
+                lines.forEach((line, i) => {
+                    if (idx1 === -1) {
+                        if (line.startsWith("<<<<<<<")) idx1 = i;
+                    } else if (idx2 === -1) {
+                        if (line.startsWith("=======")) idx2 = i;
+                    } else {
+                        if (line.startsWith(">>>>>>>")) {
+                            conflictLines.push(idx1 + 1);
+
+                            idx1 = -1;
+                            idx2 = -1;
+                        }
+                    }
+                });
+
+                let debugLinesFound = [];
+                if (filename.endsWith('.php')) {
+                    lines.forEach((line, i) => {
+                        if (debugRegex.test(line)) {
+                            // Voeg alleen toe als de test slaagt
+                            debugLinesFound.push({line: i + 1, content: line.trim()});
+                        }
+                    });
+                }
+
+                return {filename, conflictLines, debugLinesFound};
+            } catch (err) {
+                _actions_core__WEBPACK_IMPORTED_MODULE_1__.warning(
+                    `Could not read or process file ${filename}: ${err.message}`,
+                );
+                return null;
+            }
+        });
+
+        const results = await Promise.all(promises);
+
+        for (const result of results) {
+            if (!result) continue;
+
+            if (result.conflictLines.length > 0) {
+                conflictFound = true;
+                conflictBody += `**File:** \`${result.filename}\`\n`;
+                conflictBody += result.conflictLines
+                    .map((lineNum) => `  - Conflict marker starting at line #${lineNum}`)
+                    .join("\n");
+                conflictBody += "\n\n";
+            }
+
+            if (result.debugLinesFound.length > 0) {
+                debugFound = true;
+                debugBody += `**File:** \`${result.filename}\`\n`;
+                debugBody += result.debugLinesFound
+                    .map((debug) => `  - Line #${debug.line}: \`${debug.content}\``)
+                    .join("\n");
+                debugBody += "\n\n";
+            }
+        }
+    } finally {
+        _actions_core__WEBPACK_IMPORTED_MODULE_1__.endGroup();
+    }
+
+    if (conflictFound) {
+        await (0,_lib_comment__WEBPACK_IMPORTED_MODULE_3__/* ["default"] */ .A)({
+            octokit,
+            pull_number: pr,
+            body: truncateBody(conflictBody),
+        });
+    }
+
+    if (debugFound) {
+        await (0,_lib_comment__WEBPACK_IMPORTED_MODULE_3__/* ["default"] */ .A)({
+            octokit,
+            pull_number: pr,
+            body: truncateBody(debugBody),
+        });
+    }
+
+    if (conflictFound && debugFound) {
+        throw Error(
+            "Found merge conflict markers AND leftover debug calls. Please fix both.",
+        );
+    } else if (conflictFound) {
+        throw Error("Found merge conflict markers. Please resolve them.");
+    } else if (debugFound) {
+        throw Error("Found leftover debug calls. Please remove them.");
+    }
 }
 
 try {
-  await run();
+    await run();
 } catch (error) {
-  _actions_core__WEBPACK_IMPORTED_MODULE_1__.setFailed(error.message);
+    _actions_core__WEBPACK_IMPORTED_MODULE_1__.setFailed(error.message);
 }
 
 __webpack_async_result__();
