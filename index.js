@@ -65,7 +65,7 @@ async function run() {
     `Searching for conflict markers and debug calls in changed files`,
   );
   try {
-    const debugRegex = /@?(showe|dump|dumps|dd)\s*\([^)]+\)/i;
+    const debugRegex = /(^|[\s\t])@?(show|showe|dump|dumps|dd)\s*\([^)]+\)/i;
 
     const promises = files.map(async (filename) => {
       try {
