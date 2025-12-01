@@ -65,13 +65,8 @@ async function run() {
       `Searching for conflict markers and debug calls in changed files`,
   );
   try {
-    // 1. Zoek naar dd, dump, etc. voorafgegaan door start-regel OF witruimte.
-    // Dit voorkomt matches op $obj->add()
-    const debugRegex = /(^|[\s\t])@?(showe|dump|dumps|dd)\s*\([^)]+\)/i;
-
-    // 2. Filter om te checken of het toevallig een functie definitie is.
-    // Dit vervangt de negative lookbehind (?<!function) die niet werkt in oudere Node versies.
-    const functionDefRegex = /function\s+@?(showe|dump|dumps|dd)/i;
+    const debugRegex = /(^|[\s\t])@?(show|showe|dump|dumps|dd)\s*\([^)]+\)/i;
+    const functionDefRegex = /function\s+@?(show|showe|dump|dumps|dd)/i;
 
     const promises = files.map(async (filename) => {
       try {
@@ -102,9 +97,7 @@ async function run() {
         let debugLinesFound = [];
         if (filename.endsWith(".php")) {
           lines.forEach((line, i) => {
-            // Check 1: Matcht het patroon (bijv. " dd('foo')")?
             if (debugRegex.test(line)) {
-              // Check 2: Is het GEEN functie definitie (bijv. "function dd()")?
               if (!functionDefRegex.test(line)) {
                 debugLinesFound.push({ line: i + 1, content: line.trim() });
               }
