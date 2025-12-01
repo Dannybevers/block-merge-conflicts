@@ -27,19 +27,19 @@ async function run() {
   const files = [];
 
   core.startGroup(
-    `Fetching list of changed files for PR#${pr} from Github API`,
+      `Fetching list of changed files for PR#${pr} from Github API`,
   );
   try {
     for await (const response of octokit.paginate.iterator(
-      octokit.rest.pulls.listFiles.endpoint.merge({
-        owner: github.context.repo.owner,
-        repo: github.context.repo.repo,
-        pull_number: pr,
-      }),
+        octokit.rest.pulls.listFiles.endpoint.merge({
+          owner: github.context.repo.owner,
+          repo: github.context.repo.repo,
+          pull_number: pr,
+        }),
     )) {
       if (response.status !== 200) {
         throw new Error(
-          `Fetching list of changed files from GitHub API failed with error code ${response.status}`,
+            `Fetching list of changed files from GitHub API failed with error code ${response.status}`,
         );
       }
       core.info(`Received ${response.data.length} items`);
@@ -59,13 +59,19 @@ async function run() {
   let conflictBody = commentTpl;
   let debugFound = false;
   let debugBody =
-    "Heads up! Found leftover debugging functions in this Pull Request:\n\n";
+      "Heads up! Found leftover debugging functions in this Pull Request:\n\n";
 
   core.startGroup(
-    `Searching for conflict markers and debug calls in changed files`,
+      `Searching for conflict markers and debug calls in changed files`,
   );
   try {
-    const debugRegex = /(^|[\s\t])@?(show|showe|dump|dumps|dd)\s*\([^)]+\)/i;
+    // 1. Zoek naar dd, dump, etc. voorafgegaan door start-regel OF witruimte.
+    // Dit voorkomt matches op $obj->add()
+    const debugRegex = /(^|[\s\t])@?(showe|dump|dumps|dd)\s*\([^)]+\)/i;
+
+    // 2. Filter om te checken of het toevallig een functie definitie is.
+    // Dit vervangt de negative lookbehind (?<!function) die niet werkt in oudere Node versies.
+    const functionDefRegex = /function\s+@?(showe|dump|dumps|dd)/i;
 
     const promises = files.map(async (filename) => {
       try {
@@ -96,8 +102,12 @@ async function run() {
         let debugLinesFound = [];
         if (filename.endsWith(".php")) {
           lines.forEach((line, i) => {
+            // Check 1: Matcht het patroon (bijv. " dd('foo')")?
             if (debugRegex.test(line)) {
-              debugLinesFound.push({ line: i + 1, content: line.trim() });
+              // Check 2: Is het GEEN functie definitie (bijv. "function dd()")?
+              if (!functionDefRegex.test(line)) {
+                debugLinesFound.push({ line: i + 1, content: line.trim() });
+              }
             }
           });
         }
@@ -105,7 +115,7 @@ async function run() {
         return { filename, conflictLines, debugLinesFound };
       } catch (err) {
         core.warning(
-          `Could not read or process file ${filename}: ${err.message}`,
+            `Could not read or process file ${filename}: ${err.message}`,
         );
         return null;
       }
@@ -120,8 +130,8 @@ async function run() {
         conflictFound = true;
         conflictBody += `**File:** \`${result.filename}\`\n`;
         conflictBody += result.conflictLines
-          .map((lineNum) => `  - Conflict marker starting at line #${lineNum}`)
-          .join("\n");
+            .map((lineNum) => `  - Conflict marker starting at line #${lineNum}`)
+            .join("\n");
         conflictBody += "\n\n";
       }
 
@@ -129,8 +139,8 @@ async function run() {
         debugFound = true;
         debugBody += `**File:** \`${result.filename}\`\n`;
         debugBody += result.debugLinesFound
-          .map((debug) => `  - Line #${debug.line}: \`${debug.content}\``)
-          .join("\n");
+            .map((debug) => `  - Line #${debug.line}: \`${debug.content}\``)
+            .join("\n");
         debugBody += "\n\n";
       }
     }
@@ -156,7 +166,7 @@ async function run() {
 
   if (conflictFound && debugFound) {
     throw Error(
-      "Found merge conflict markers AND leftover debug calls. Please fix both.",
+        "Found merge conflict markers AND leftover debug calls. Please fix both.",
     );
   } else if (conflictFound) {
     throw Error("Found merge conflict markers. Please resolve them.");
