@@ -1,6 +1,6 @@
 {
   "name": "create-milestone-action",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "Pure JS GitHub Action to create a Milestone",
   "keywords": [
     "GitHub",
@@ -16,14 +16,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sv-tools/block-merge-conflicts.git"
+    "url": "git+https://github.com/Dannybevers/block-merge-conflicts.git"
   },
   "author": "Sergey Vilgelm <sergey@vilgelm.com> (https://vilgelm.com)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/sv-tools/block-merge-conflicts/issues"
+    "url": "https://github.com/Dannybevers/block-merge-conflicts/issues"
   },
-  "homepage": "https://github.com/sv-tools/block-merge-conflicts#readme",
+  "homepage": "https://github.com/Dannybevers/block-merge-conflicts#readme",
   "dependencies": {
     "@actions/core": "^1.11.1",
     "@actions/github": "^6.0.1"
