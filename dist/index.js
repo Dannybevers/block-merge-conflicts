@@ -111,10 +111,14 @@ async function run() {
       }
       for (const row of response.data) {
         if (row.status === "removed") continue;
+
         if (!isScannable(row.filename)) {
           _actions_core__WEBPACK_IMPORTED_MODULE_1__.info(`Skipping binary/lock file: ${row.filename}`);
           continue;
         }
+
+        // Logs exactly which file is added to the scan queue
+        _actions_core__WEBPACK_IMPORTED_MODULE_1__.info(`Queued for scan: ${row.filename}`);
         files.push(row.filename);
       }
     }
@@ -164,7 +168,7 @@ async function run() {
           const line = lines[i];
           const lineNum = i + 1;
 
-          // Conflict Markers (always check)
+          // Conflict Markers
           if (conflictMarkerRegex.test(line)) {
             conflicts.push(lineNum);
             continue;
