@@ -17,221 +17,221 @@ const MAX_FILE_SIZE_BYTES = 1024 * 1024; // Skip files larger than 1MB
  * Truncate the body if it is too long for the GitHub API.
  */
 function truncateBody(body) {
-  if (body.length > MAX_BODY_LENGTH) {
-    return body.substring(0, MAX_BODY_LENGTH) + TRUNCATION_MESSAGE;
-  }
-  return body;
+    if (body.length > MAX_BODY_LENGTH) {
+        return body.substring(0, MAX_BODY_LENGTH) + TRUNCATION_MESSAGE;
+    }
+    return body;
 }
 
 /**
  * Determines if a file should be scanned.
  */
 const isScannable = (filename) => {
-  const ignoredFiles = [
-    // Standard locks
-    'package-lock.json', 'yarn.lock', 'composer.lock', 'pnpm-lock.yaml', 'cargo.lock', 'gemfile.lock',
-    // Laravel / Framework specific generated files
-    '_ide_helper.php',
-    '_ide_helper_models.php',
-    '.phpstorm.meta.php',
-    'artisan',
-    'server.php'
-  ];
+    const ignoredFiles = [
+        // Standard locks
+        'package-lock.json', 'yarn.lock', 'composer.lock', 'pnpm-lock.yaml', 'cargo.lock', 'gemfile.lock',
+        // Laravel / Framework specific generated files
+        '_ide_helper.php',
+        '_ide_helper_models.php',
+        '.phpstorm.meta.php',
+        'artisan',
+        'server.php'
+    ];
 
-  const baseName = filename.split('/').pop();
-  if (ignoredFiles.includes(baseName)) return false;
+    const baseName = filename.split('/').pop();
+    if (ignoredFiles.includes(baseName)) return false;
 
-  const ignoredExts = [
-    '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.webp', '.avif',
-    '.mp4', '.webm', '.mp3', '.wav',
-    '.pdf', '.zip', '.tar', '.gz', '.rar', '.7z', '.exe', '.dll', '.so', '.dylib',
-    '.woff', '.woff2', '.ttf', '.eot', '.otf',
-    '.map', '.xml'
-  ];
-  if (ignoredExts.some(ext => filename.endsWith(ext))) return false;
+    const ignoredExts = [
+        '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.webp', '.avif',
+        '.mp4', '.webm', '.mp3', '.wav',
+        '.pdf', '.zip', '.tar', '.gz', '.rar', '.7z', '.exe', '.dll', '.so', '.dylib',
+        '.woff', '.woff2', '.ttf', '.eot', '.otf',
+        '.map', '.xml'
+    ];
+    if (ignoredExts.some(ext => filename.endsWith(ext))) return false;
 
-  if (filename.endsWith('.min.js') || filename.endsWith('.min.css')) return false;
+    if (filename.endsWith('.min.js') || filename.endsWith('.min.css')) return false;
 
-  const ignoredDirs = [
-    'node_modules/',
-    'vendor/',
-    'dist/',
-    'build/',
-    'public/build/',
-    '.git/',
-    // Laravel specific directories
-    'storage/',
-    'bootstrap/cache/',
-    'database/schema/',
-    'coverage/'
-  ];
+    const ignoredDirs = [
+        'node_modules/',
+        'vendor/',
+        'dist/',
+        'build/',
+        'public/build/',
+        '.git/',
+        // Laravel specific directories
+        'storage/',
+        'bootstrap/cache/',
+        'database/schema/',
+        'coverage/'
+    ];
 
-  if (ignoredDirs.some(dir => filename.startsWith(dir) || filename.includes(`/${dir}`))) return false;
+    if (ignoredDirs.some(dir => filename.startsWith(dir) || filename.includes(`/${dir}`))) return false;
 
-  return true;
+    return true;
 };
 
 async function run() {
-  const token = core.getInput("token", { required: true });
+    const token = core.getInput("token", {required: true});
 
-  if (!github.context.payload.pull_request) {
-    core.info("No pull request context found, skipping check.");
-    return;
-  }
-
-  const prPayload = github.context.payload.pull_request;
-  const prNum = prPayload.number;
-  const headSha = prPayload.head.sha;
-  const repoUrl = prPayload.head.repo.html_url;
-
-  const octokit = github.getOctokit(token);
-  const files = [];
-
-  core.startGroup(`Fetching changed files for PR#${prNum}`);
-  try {
-    const iterator = octokit.paginate.iterator(
-        octokit.rest.pulls.listFiles.endpoint.merge({
-          owner: github.context.repo.owner,
-          repo: github.context.repo.repo,
-          pull_number: prNum,
-        })
-    );
-
-    for await (const response of iterator) {
-      if (response.status !== 200) {
-        throw new Error(`Fetching files failed with status ${response.status}`);
-      }
-      for (const row of response.data) {
-        if (row.status === "removed") continue;
-
-        if (!isScannable(row.filename)) {
-          core.info(`Skipping binary/lock/generated file: ${row.filename}`);
-          continue;
-        }
-
-        // Logs exactly which file is added to the scan queue
-        core.info(`Queued for scan: ${row.filename}`);
-        files.push(row.filename);
-      }
+    if (!github.context.payload.pull_request) {
+        core.info("No pull request context found, skipping check.");
+        return;
     }
-    core.info(`Found ${files.length} scannable files.`);
-  } finally {
-    core.endGroup();
-  }
 
-  let conflictFound = false;
-  let debugFound = false;
-  let conflictBody = conflictTpl;
-  let debugBody = debugTpl;
+    const prPayload = github.context.payload.pull_request;
+    const prNum = prPayload.number;
+    const headSha = prPayload.head.sha;
+    const repoUrl = prPayload.head.repo.html_url;
 
-  core.startGroup(`Analyzing content...`);
-  try {
-    // Regex definitions
-    // PHP: Catch @dump, dump(, dd(, etc.
-    const phpBadFuncsRegex = /(^|[\s\t]|@)(show|showe|dump|dumps|dd|eval|exec|shell_exec|system|passthru|phpinfo)\s*\(/i;
-    // JS: Catch debugger or alert(
-    const jsBadFuncsRegex = /(^|[\s\t])(debugger|alert\s*\()/i;
+    const octokit = github.getOctokit(token);
+    const files = [];
 
-    const functionDefRegex = /function\s+@?(\w+)/i;
-    const conflictMarkerRegex = /^(<<<<<<<|=======|>>>>>>>)/;
+    core.startGroup(`Fetching changed files for PR#${prNum}`);
+    try {
+        const iterator = octokit.paginate.iterator(
+            octokit.rest.pulls.listFiles.endpoint.merge({
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                pull_number: prNum,
+            })
+        );
 
-    const promises = files.map(async (filename) => {
-      try {
-        const stats = await fs.stat(filename);
-        if (stats.size > MAX_FILE_SIZE_BYTES) {
-          core.info(`Skipping ${filename} (too large)`);
-          return null;
-        }
-
-        const content = await fs.readFile(filename, 'utf8');
-
-        const lines = content.split(/\r?\n/);
-        const conflicts = [];
-        const fileBadLines = [];
-
-        const isPhp = filename.endsWith(".php");
-        const isJs = /\.(js|jsx|ts|tsx|vue)$/i.test(filename);
-
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i];
-          const lineNum = i + 1;
-
-          // Conflict Markers
-          if (conflictMarkerRegex.test(line)) {
-            conflicts.push(lineNum);
-            continue;
-          }
-
-          const trimmed = line.trim();
-
-          // Skip comments to avoid false positives (e.g. // dd($foo))
-          if (trimmed.startsWith('//') || trimmed.startsWith('#') || trimmed.startsWith('*')) {
-            continue;
-          }
-
-          // PHP Checks
-          if (isPhp) {
-            if (phpBadFuncsRegex.test(line)) {
-              // Ensure it's not a function definition (e.g. function dump() {})
-              if (!functionDefRegex.test(line)) {
-                fileBadLines.push({ line: lineNum, content: trimmed, type: 'PHP Risk' });
-              }
+        for await (const response of iterator) {
+            if (response.status !== 200) {
+                throw new Error(`Fetching files failed with status ${response.status}`);
             }
-          }
+            for (const row of response.data) {
+                if (row.status === "removed") continue;
 
-          // JS Checks
-          if (isJs) {
-            if (jsBadFuncsRegex.test(line)) {
-              fileBadLines.push({ line: lineNum, content: trimmed, type: 'JS Risk' });
+                if (!isScannable(row.filename)) {
+                    core.info(`Skipping binary/lock/generated file: ${row.filename}`);
+                    continue;
+                }
+
+                // Logs exactly which file is added to the scan queue
+                core.info(`Queued for scan: ${row.filename}`);
+                files.push(row.filename);
             }
-          }
         }
-
-        return { filename, conflicts, fileBadLines };
-      } catch (err) {
-        core.warning(`Error processing ${filename}: ${err.message}`);
-        return null;
-      }
-    });
-
-    const results = await Promise.all(promises);
-
-    for (const result of results) {
-      if (!result) continue;
-      const fileUrl = `${repoUrl}/blob/${headSha}/${result.filename}`;
-
-      if (result.conflicts.length > 0) {
-        conflictFound = true;
-        conflictBody += `**File:** \`${result.filename}\`\n`;
-        conflictBody += result.conflicts
-            .map((ln) => `  - [Line #${ln}](${fileUrl}#L${ln}): Conflict marker`)
-            .join("\n");
-        conflictBody += "\n\n";
-      }
-
-      if (result.fileBadLines.length > 0) {
-        debugFound = true;
-        debugBody += `**File:** \`${result.filename}\`\n`;
-        debugBody += result.fileBadLines
-            .map((d) => `  - [Line #${d.line}](${fileUrl}#L${d.line}): \`${d.content}\``)
-            .join("\n");
-        debugBody += "\n\n";
-      }
+        core.info(`Found ${files.length} scannable files.`);
+    } finally {
+        core.endGroup();
     }
-  } finally {
-    core.endGroup();
-  }
 
-  if (conflictFound) await leaveComment({ octokit, pull_number: prNum, body: truncateBody(conflictBody) });
-  if (debugFound) await leaveComment({ octokit, pull_number: prNum, body: truncateBody(debugBody) });
+    let conflictFound = false;
+    let debugFound = false;
+    let conflictBody = conflictTpl;
+    let debugBody = debugTpl;
 
-  if (conflictFound && debugFound) throw new Error("Found merge conflicts AND debugging/security risks.");
-  if (conflictFound) throw new Error("Found merge conflict markers.");
-  if (debugFound) throw new Error("Found leftover debugging code or security risks.");
+    core.startGroup(`Analyzing content...`);
+    try {
+        // Regex definitions
+        // PHP: Catch @dump, dump(, dd(, etc.
+        const phpBadFuncsRegex = /(^|[\s\t]|@)(show|showe|dump|dumps|dd|eval|exec|shell_exec|system|passthru|phpinfo)\s*\(/i;
+        // JS: Catch debugger or alert(
+        const jsBadFuncsRegex = /(^|[\s\t])(debugger|alert\s*\()/i;
+
+        const functionDefRegex = /function\s+@?(\w+)/i;
+        const conflictMarkerRegex = /^(<<<<<<<|=======|>>>>>>>)/;
+
+        const promises = files.map(async (filename) => {
+            try {
+                const stats = await fs.stat(filename);
+                if (stats.size > MAX_FILE_SIZE_BYTES) {
+                    core.info(`Skipping ${filename} (too large)`);
+                    return null;
+                }
+
+                const content = await fs.readFile(filename, 'utf8');
+
+                const lines = content.split(/\r?\n/);
+                const conflicts = [];
+                const fileBadLines = [];
+
+                const isPhp = filename.endsWith(".php");
+                const isJs = /\.(js|jsx|ts|tsx|vue)$/i.test(filename);
+
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    const lineNum = i + 1;
+
+                    // Conflict Markers
+                    if (conflictMarkerRegex.test(line)) {
+                        conflicts.push(lineNum);
+                        continue;
+                    }
+
+                    const trimmed = line.trim();
+
+                    // Skip comments to avoid false positives (e.g. // dd($foo) or Blade {{-- --}})
+                    if (trimmed.startsWith('//') || trimmed.startsWith('#') || trimmed.startsWith('*') || trimmed.startsWith('{{--')) {
+                        continue;
+                    }
+
+                    // PHP Checks
+                    if (isPhp) {
+                        if (phpBadFuncsRegex.test(line)) {
+                            // Ensure it's not a function definition (e.g. function dump() {})
+                            if (!functionDefRegex.test(line)) {
+                                fileBadLines.push({line: lineNum, content: trimmed, type: 'PHP Risk'});
+                            }
+                        }
+                    }
+
+                    // JS Checks
+                    if (isJs) {
+                        if (jsBadFuncsRegex.test(line)) {
+                            fileBadLines.push({line: lineNum, content: trimmed, type: 'JS Risk'});
+                        }
+                    }
+                }
+
+                return {filename, conflicts, fileBadLines};
+            } catch (err) {
+                core.warning(`Error processing ${filename}: ${err.message}`);
+                return null;
+            }
+        });
+
+        const results = await Promise.all(promises);
+
+        for (const result of results) {
+            if (!result) continue;
+            const fileUrl = `${repoUrl}/blob/${headSha}/${result.filename}`;
+
+            if (result.conflicts.length > 0) {
+                conflictFound = true;
+                conflictBody += `**File:** \`${result.filename}\`\n`;
+                conflictBody += result.conflicts
+                    .map((ln) => `  - [Line #${ln}](${fileUrl}#L${ln}): Conflict marker`)
+                    .join("\n");
+                conflictBody += "\n\n";
+            }
+
+            if (result.fileBadLines.length > 0) {
+                debugFound = true;
+                debugBody += `**File:** \`${result.filename}\`\n`;
+                debugBody += result.fileBadLines
+                    .map((d) => `  - [Line #${d.line}](${fileUrl}#L${d.line}): \`${d.content}\``)
+                    .join("\n");
+                debugBody += "\n\n";
+            }
+        }
+    } finally {
+        core.endGroup();
+    }
+
+    if (conflictFound) await leaveComment({octokit, pull_number: prNum, body: truncateBody(conflictBody)});
+    if (debugFound) await leaveComment({octokit, pull_number: prNum, body: truncateBody(debugBody)});
+
+    if (conflictFound && debugFound) throw new Error("Found merge conflicts AND debugging/security risks.");
+    if (conflictFound) throw new Error("Found merge conflict markers.");
+    if (debugFound) throw new Error("Found leftover debugging code or security risks.");
 }
 
 try {
-  await run();
+    await run();
 } catch (error) {
-  core.setFailed(error.message);
+    core.setFailed(error.message);
 }
